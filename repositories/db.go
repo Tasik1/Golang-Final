@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"fmt"
+	"go_final/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"log"
@@ -23,8 +24,7 @@ func DB() *gorm.DB {
 		return nil
 	}
 
-	// TODO: auto-migrate structs as they are created
-	// db.AutoMigrate()
+	db.AutoMigrate(&models.User{})
 
 	return db
 }
