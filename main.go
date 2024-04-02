@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/joho/godotenv"
+	"go_final/route"
 	"log"
 )
 
@@ -13,4 +14,5 @@ func loadenv() {
 
 func main() {
 	loadenv()
+	log.Fatal(route.RunAPI("127.0.0.1:8080"))
 }
