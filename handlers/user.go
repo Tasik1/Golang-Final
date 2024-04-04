@@ -5,13 +5,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"go_final/models"
 	"go_final/repositories"
+	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"strconv"
 )
 
-// TODO: secure password
-
 type UserHandler interface {
+	SignInUser(*gin.Context)
 	CreateUser(*gin.Context)
 	GetUser(*gin.Context)
 	GetAllUsers(*gin.Context)
@@ -27,6 +27,56 @@ func NewUserHandler() UserHandler {
 	return &userHandler{
 		repo: repositories.NewUserRepository(),
 	}
+}
+
+func hashPassword(pass *string) {
+	bytePass := []byte(*pass)
+	hPass, _ := bcrypt.GenerateFromPassword(bytePass, bcrypt.DefaultCost)
+	*pass = string(hPass)
+}
+
+func comparePassword(dbPass, pass string) bool {
+	return bcrypt.CompareHashAndPassword([]byte(dbPass), []byte(pass)) == nil
+}
+
+func (h *userHandler) SignInUser(ctx *gin.Context) {
+	var user models.User
+	if err := ctx.ShouldBindJSON(&user); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+
+	dbUser, err := h.repo.GetByEmail(user.Email)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "No Such User Found"})
+		return
+	}
+
+	if isTrue := comparePassword(dbUser.Password, user.Password); isTrue {
+		token := GenerateToken(dbUser.ID)
+		ctx.JSON(http.StatusOK, gin.H{"msg": "Successfully SignIN", "token": token})
+		return
+	}
+
+	ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Password not matched"})
+	return
+}
+
+func (h *userHandler) CreateUser(ctx *gin.Context) {
+	var user models.User
+	if err := ctx.ShouldBindJSON(&user); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	hashPassword(&user.Password)
+	user, err := h.repo.CreateUser(user)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	user.Password = ""
+	ctx.JSON(http.StatusOK, user)
 }
 
 func (h *userHandler) GetUser(ctx *gin.Context) {
@@ -53,23 +103,6 @@ func (h *userHandler) GetAllUsers(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	ctx.JSON(http.StatusOK, user)
-}
-
-func (h *userHandler) CreateUser(ctx *gin.Context) {
-	var user models.User
-	if err := ctx.ShouldBindJSON(&user); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	user, err := h.repo.CreateUser(user)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-
-	}
-	user.Password = ""
 	ctx.JSON(http.StatusOK, user)
 }
 
@@ -100,6 +133,8 @@ func (h *userHandler) UpdateUser(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, user)
 }
+
+// TODO: user can only delete and update own account
 
 func (h *userHandler) DeleteUser(ctx *gin.Context) {
 	var user models.User
