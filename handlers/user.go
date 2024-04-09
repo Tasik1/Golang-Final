@@ -40,10 +40,11 @@ func comparePassword(dbPass, pass string) bool {
 }
 
 func (h *userHandler) SignInUser(ctx *gin.Context) {
-	var user models.User
+	var user models.UserLogin
 	if err := ctx.ShouldBindJSON(&user); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
+	fmt.Println(user)
 
 	dbUser, err := h.repo.GetByEmail(user.Email)
 	if err != nil {
@@ -52,20 +53,27 @@ func (h *userHandler) SignInUser(ctx *gin.Context) {
 	}
 
 	if isTrue := comparePassword(dbUser.Password, user.Password); isTrue {
-		token := GenerateToken(dbUser.ID)
-		ctx.JSON(http.StatusOK, gin.H{"msg": "Successfully SignIN", "token": token})
+		token := GenerateToken(dbUser.ID, dbUser.IsAdmin)
+		ctx.JSON(http.StatusOK, gin.H{"msg": "Successfully SignedIN", "token": token})
 		return
 	}
 
-	ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Password not matched"})
+	ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Password didn't match"})
 	return
 }
 
 func (h *userHandler) CreateUser(ctx *gin.Context) {
-	var user models.User
-	if err := ctx.ShouldBindJSON(&user); err != nil {
+	var input models.UserRegister
+	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	user := models.User{
+		Name:     input.Name,
+		Email:    input.Email,
+		Password: input.Password,
+		IsAdmin:  false,
 	}
 
 	hashPassword(&user.Password)
@@ -97,7 +105,6 @@ func (h *userHandler) GetUser(ctx *gin.Context) {
 }
 
 func (h *userHandler) GetAllUsers(ctx *gin.Context) {
-	fmt.Println(ctx.Get("userID"))
 	user, err := h.repo.GetAllUsers()
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -107,24 +114,42 @@ func (h *userHandler) GetAllUsers(ctx *gin.Context) {
 }
 
 func (h *userHandler) UpdateUser(ctx *gin.Context) {
-	var user models.User
-	if err := ctx.ShouldBindJSON(&user); err != nil {
+	var input models.UserUpdate
+	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	fmt.Println(user.Name)
 
 	id := ctx.Param("id")
 	intID, err := strconv.Atoi(id)
-
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
 
-	user.ID = uint(intID)
-	user, err = h.repo.UpdateUser(user)
+	isAdmin := false
+	if ctxIsAdmin, ok := ctx.Get("isAdmin"); ok {
+		isAdmin = ctxIsAdmin.(bool)
+	}
 
-	fmt.Println("Updated in base!!")
+	if !isAdmin {
+		if ctxID, ok := ctx.Get("userID"); !ok || ctxID.(float64) != float64(intID) {
+			ctx.JSON(http.StatusMethodNotAllowed, gin.H{"error": "Not allowed to update this entry!"})
+			return
+		}
+	}
+
+	user, err := h.repo.GetUser(intID)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "No such user id database!"})
+		return
+	}
+
+	user.ID = uint(intID)
+	user.Name = input.Name
+	user.Password = input.Password
+	hashPassword(&user.Password)
+
+	user, err = h.repo.UpdateUser(user)
 
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -134,13 +159,23 @@ func (h *userHandler) UpdateUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, user)
 }
 
-// TODO: user can only delete and update own account
-
 func (h *userHandler) DeleteUser(ctx *gin.Context) {
 	var user models.User
 	id := ctx.Param("id")
 	intID, _ := strconv.Atoi(id)
 	user.ID = uint(intID)
+
+	isAdmin := false
+	if ctxIsAdmin, ok := ctx.Get("isAdmin"); ok {
+		isAdmin = ctxIsAdmin.(bool)
+	}
+
+	if !isAdmin {
+		if ctxID, ok := ctx.Get("userID"); !ok || ctxID.(float64) != float64(intID) {
+			ctx.JSON(http.StatusMethodNotAllowed, gin.H{"error": "Not allowed to delete this entry!"})
+			return
+		}
+	}
 
 	user, err := h.repo.DeleteUser(user)
 	if err != nil {
