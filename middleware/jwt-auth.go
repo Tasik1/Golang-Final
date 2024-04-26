@@ -30,6 +30,7 @@ func AuthorizeJWT() gin.HandlerFunc {
 				if token.Valid {
 					ctx.Set("userID", claims["userID"])
 					ctx.Set("isAdmin", claims["isAdmin"])
+					ctx.Next()
 
 				} else {
 					ctx.AbortWithStatus(http.StatusUnauthorized)
