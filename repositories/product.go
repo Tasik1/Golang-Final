@@ -5,7 +5,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// ProductRepository --> Interface to ProductRepository
 type ProductRepository interface {
 	Getproduct(int) (models.Product, error)
 	GetAllproduct() ([]models.Product, error)

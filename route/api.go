@@ -28,23 +28,23 @@ func RunAPI(address string) error {
 	userSecuredRoutes := apiRoutes.Group("/users", middleware.AuthorizeJWT())
 	{
 		userSecuredRoutes.GET("/", userHandler.GetAllUsers)
-		userSecuredRoutes.GET("/:id", userHandler.GetUser)
+		userSecuredRoutes.GET("/:user_id", userHandler.GetUser)
 		adminRoutes := userSecuredRoutes.Group("/", middleware.CheckAdmin())
 		{
-			adminRoutes.PUT("/:id", userHandler.UpdateUser)
-			adminRoutes.DELETE("/:id", userHandler.DeleteUser)
+			adminRoutes.PUT("/:user_id", userHandler.UpdateUser)
+			adminRoutes.DELETE("/:user_id", userHandler.DeleteUser)
 		}
 	}
 
 	productRoutes := apiRoutes.Group("/products", middleware.AuthorizeJWT())
 	{
 		productRoutes.GET("/", productHandler.GetAllProduct)
-		productRoutes.GET("/:productID", productHandler.GetProduct)
+		productRoutes.GET("/:product_id", productHandler.GetProduct)
 		adminRoutes := productRoutes.Group("/", middleware.CheckAdmin())
 		{
 			adminRoutes.POST("/", productHandler.CreateProduct)
-			adminRoutes.PUT("/:productID", productHandler.UpdateProduct)
-			adminRoutes.DELETE("/:productID", productHandler.DeleteProduct)
+			adminRoutes.PUT("/:product_id", productHandler.UpdateProduct)
+			adminRoutes.DELETE("/:product_id", productHandler.DeleteProduct)
 		}
 	}
 

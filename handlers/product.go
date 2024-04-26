@@ -39,7 +39,7 @@ func (h *productHandler) GetAllProduct(ctx *gin.Context) {
 }
 
 func (h *productHandler) GetProduct(ctx *gin.Context) {
-	prodStr := ctx.Param("productID")
+	prodStr := ctx.Param("product_id")
 	prodID, err := strconv.Atoi(prodStr)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -78,7 +78,7 @@ func (h *productHandler) UpdateProduct(ctx *gin.Context) {
 		return
 	}
 
-	prodStr := ctx.Param("productID")
+	prodStr := ctx.Param("product_id")
 	prodID, err := strconv.Atoi(prodStr)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -97,7 +97,7 @@ func (h *productHandler) UpdateProduct(ctx *gin.Context) {
 func (h *productHandler) DeleteProduct(ctx *gin.Context) {
 
 	var product models.Product
-	prodStr := ctx.Param("productID")
+	prodStr := ctx.Param("product_id")
 	prodID, _ := strconv.Atoi(prodStr)
 	product.ID = uint(prodID)
 	product, err := h.repo.DeleteProduct(product)

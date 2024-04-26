@@ -88,7 +88,7 @@ func (h *userHandler) CreateUser(ctx *gin.Context) {
 }
 
 func (h *userHandler) GetUser(ctx *gin.Context) {
-	id := ctx.Param("id")
+	id := ctx.Param("user_id")
 	intID, err := strconv.Atoi(id)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -120,16 +120,8 @@ func (h *userHandler) UpdateUser(ctx *gin.Context) {
 		return
 	}
 
-	id := ctx.Param("id")
-	intID, err := strconv.Atoi(id)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-	}
-
-	if ctxID, ok := ctx.Get("userID"); !ok || ctxID.(float64) != float64(intID) {
-		ctx.JSON(http.StatusMethodNotAllowed, gin.H{"error": "Not allowed to update this entry!"})
-		return
-	}
+	id := ctx.Param("user_id")
+	intID, _ := strconv.Atoi(id)
 
 	user, err := h.repo.GetUser(intID)
 	if err != nil {
@@ -154,14 +146,9 @@ func (h *userHandler) UpdateUser(ctx *gin.Context) {
 
 func (h *userHandler) DeleteUser(ctx *gin.Context) {
 	var user models.User
-	id := ctx.Param("id")
+	id := ctx.Param("user_id")
 	intID, _ := strconv.Atoi(id)
 	user.ID = uint(intID)
-
-	if ctxID, ok := ctx.Get("userID"); !ok || ctxID.(float64) != float64(intID) {
-		ctx.JSON(http.StatusMethodNotAllowed, gin.H{"error": "Not allowed to delete this entry!"})
-		return
-	}
 
 	user, err := h.repo.DeleteUser(user)
 	if err != nil {
