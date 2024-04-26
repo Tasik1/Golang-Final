@@ -10,6 +10,7 @@ import (
 func RunAPI(address string) error {
 
 	userHandler := handlers.NewUserHandler()
+	productHandler := handlers.NewProductHandler()
 
 	r := gin.Default()
 
@@ -28,8 +29,23 @@ func RunAPI(address string) error {
 	{
 		userSecuredRoutes.GET("/", userHandler.GetAllUsers)
 		userSecuredRoutes.GET("/:id", userHandler.GetUser)
-		userSecuredRoutes.PUT("/:id", userHandler.UpdateUser)
-		userSecuredRoutes.DELETE("/:id", userHandler.DeleteUser)
+		adminRoutes := userSecuredRoutes.Group("/", middleware.CheckAdmin())
+		{
+			adminRoutes.PUT("/:id", userHandler.UpdateUser)
+			adminRoutes.DELETE("/:id", userHandler.DeleteUser)
+		}
+	}
+
+	productRoutes := apiRoutes.Group("/products", middleware.AuthorizeJWT())
+	{
+		productRoutes.GET("/", productHandler.GetAllProduct)
+		productRoutes.GET("/:productID", productHandler.GetProduct)
+		adminRoutes := productRoutes.Group("/", middleware.CheckAdmin())
+		{
+			adminRoutes.POST("/", productHandler.CreateProduct)
+			adminRoutes.PUT("/:productID", productHandler.UpdateProduct)
+			adminRoutes.DELETE("/:productID", productHandler.DeleteProduct)
+		}
 	}
 
 	return r.Run(address)

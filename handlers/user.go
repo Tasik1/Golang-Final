@@ -126,16 +126,9 @@ func (h *userHandler) UpdateUser(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
 
-	isAdmin := false
-	if ctxIsAdmin, ok := ctx.Get("isAdmin"); ok {
-		isAdmin = ctxIsAdmin.(bool)
-	}
-
-	if !isAdmin {
-		if ctxID, ok := ctx.Get("userID"); !ok || ctxID.(float64) != float64(intID) {
-			ctx.JSON(http.StatusMethodNotAllowed, gin.H{"error": "Not allowed to update this entry!"})
-			return
-		}
+	if ctxID, ok := ctx.Get("userID"); !ok || ctxID.(float64) != float64(intID) {
+		ctx.JSON(http.StatusMethodNotAllowed, gin.H{"error": "Not allowed to update this entry!"})
+		return
 	}
 
 	user, err := h.repo.GetUser(intID)
@@ -165,16 +158,9 @@ func (h *userHandler) DeleteUser(ctx *gin.Context) {
 	intID, _ := strconv.Atoi(id)
 	user.ID = uint(intID)
 
-	isAdmin := false
-	if ctxIsAdmin, ok := ctx.Get("isAdmin"); ok {
-		isAdmin = ctxIsAdmin.(bool)
-	}
-
-	if !isAdmin {
-		if ctxID, ok := ctx.Get("userID"); !ok || ctxID.(float64) != float64(intID) {
-			ctx.JSON(http.StatusMethodNotAllowed, gin.H{"error": "Not allowed to delete this entry!"})
-			return
-		}
+	if ctxID, ok := ctx.Get("userID"); !ok || ctxID.(float64) != float64(intID) {
+		ctx.JSON(http.StatusMethodNotAllowed, gin.H{"error": "Not allowed to delete this entry!"})
+		return
 	}
 
 	user, err := h.repo.DeleteUser(user)
