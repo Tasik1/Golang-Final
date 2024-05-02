@@ -29,7 +29,7 @@ func AuthorizeJWT() gin.HandlerFunc {
 			} else {
 				if token.Valid {
 					ctx.Set("userID", claims["userID"])
-					ctx.Set("isAdmin", claims["isAdmin"])
+					ctx.Set("role", claims["role"])
 					ctx.Next()
 
 				} else {

@@ -3,16 +3,17 @@ package handlers
 import (
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
+	"go_final/models"
 	"os"
 	"time"
 )
 
-func GenerateToken(userID uint, isAdmin bool) string {
+func GenerateToken(userID uint, role models.UserRole) string {
 	claims := jwt.MapClaims{
-		"exp":     time.Now().Add(time.Hour * 24).Unix(),
-		"iat":     time.Now().Unix(),
-		"userID":  userID,
-		"isAdmin": isAdmin,
+		"exp":    time.Now().Add(time.Hour * 24).Unix(),
+		"iat":    time.Now().Unix(),
+		"userID": userID,
+		"role":   role,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
