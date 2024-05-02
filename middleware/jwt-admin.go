@@ -3,13 +3,14 @@ package middleware
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"go_final/models"
 	"net/http"
 )
 
 func CheckAdmin() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		isAdmin, adminExists := ctx.Get("isAdmin")
-		if adminExists && isAdmin == true {
+		role, adminExists := ctx.Get("role")
+		if adminExists && role.(string) == string(models.ADMIN_ROLE) {
 			ctx.Next()
 			return
 		}

@@ -11,6 +11,7 @@ func RunAPI(address string) error {
 
 	userHandler := handlers.NewUserHandler()
 	productHandler := handlers.NewProductHandler()
+	orderHandler := handlers.NewOrderHandler()
 
 	r := gin.Default()
 
@@ -46,6 +47,15 @@ func RunAPI(address string) error {
 			adminRoutes.PUT("/:product_id", productHandler.UpdateProduct)
 			adminRoutes.DELETE("/:product_id", productHandler.DeleteProduct)
 		}
+	}
+
+	orderRoutes := apiRoutes.Group("/order", middleware.AuthorizeJWT())
+	{
+		orderRoutes.GET("/", orderHandler.GetCurrentOrder)
+		orderRoutes.POST("/", orderHandler.OrderProducts)
+		orderRoutes.PUT("/", orderHandler.UpdateOrder)
+		orderRoutes.DELETE("/", orderHandler.DeleteOrder)
+		orderRoutes.DELETE("/order_items/:order_item_id", orderHandler.DeleteOrderItem)
 	}
 
 	return r.Run(address)

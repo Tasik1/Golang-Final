@@ -53,7 +53,7 @@ func (h *userHandler) SignInUser(ctx *gin.Context) {
 	}
 
 	if isTrue := comparePassword(dbUser.Password, user.Password); isTrue {
-		token := GenerateToken(dbUser.ID, dbUser.IsAdmin)
+		token := GenerateToken(dbUser.ID, dbUser.Role)
 		ctx.JSON(http.StatusOK, gin.H{"msg": "Successfully SignedIN", "token": token})
 		return
 	}
@@ -73,7 +73,7 @@ func (h *userHandler) CreateUser(ctx *gin.Context) {
 		Name:     input.Name,
 		Email:    input.Email,
 		Password: input.Password,
-		IsAdmin:  false,
+		Role:     models.CUSTOMER_ROLE,
 	}
 
 	hashPassword(&user.Password)

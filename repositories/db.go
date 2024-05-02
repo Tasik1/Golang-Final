@@ -24,7 +24,7 @@ func DB() *gorm.DB {
 		return nil
 	}
 
-	db.AutoMigrate(&models.User{}, &models.Product{})
+	db.AutoMigrate(&models.User{}, &models.Product{}, &models.Order{}, &models.OrderItems{})
 
 	return db
 }
