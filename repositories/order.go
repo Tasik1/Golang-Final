@@ -9,9 +9,12 @@ import (
 )
 
 type OrderRepository interface {
-	GetCurrentOrder(uint) ([]models.OrderItems, error)
+	GetOrders(uint) ([]models.Order, error)
+	GetOrderByID(uint) (models.Order, error)
+	GetOrderItems(uint) ([]models.OrderItems, error)
 	OrderProducts(uint, []models.CartItemRequest) error
 	UpdateOrder(uint, []models.CartItemRequest) error
+	UpdateOrderStatus(uint, string) error
 	DeleteOrder(uint) error
 	DeleteOrderItem(uint, uint) error
 }
@@ -26,11 +29,26 @@ func NewOrderRepository() OrderRepository {
 	}
 }
 
-func (db *orderRepository) GetCurrentOrder(userID uint) ([]models.OrderItems, error) {
+func (db *orderRepository) GetOrders(userID uint) ([]models.Order, error) {
+	var orders []models.Order
+	if err := db.connection.Where("user_id = ?", userID).Find(&orders).Error; err != nil {
+		return nil, err
+	}
+	return orders, nil
+}
+
+func (db *orderRepository) GetOrderByID(orderID uint) (models.Order, error) {
+	var order models.Order
+	if err := db.connection.First(&order, orderID).Error; err != nil {
+		return models.Order{}, err
+	}
+	return order, nil
+}
+
+func (db *orderRepository) GetOrderItems(orderID uint) ([]models.OrderItems, error) {
 	var orderItems []models.OrderItems
-	// Fetch order items from orders that are not completed or canceled
 	err := db.connection.Preload(clause.Associations).Joins("JOIN orders ON orders.id = order_items.order_id").
-		Where("orders.user_id = ? AND orders.order_status NOT IN (?)", userID, []string{"completed", "canceled"}).
+		Where("orders.id = ?", orderID).
 		Find(&orderItems).Error
 	if err != nil {
 		return nil, err
@@ -148,6 +166,10 @@ func (db *orderRepository) UpdateOrder(userID uint, request []models.CartItemReq
 
 		return nil
 	})
+}
+
+func (db *orderRepository) UpdateOrderStatus(orderID uint, newStatus string) error {
+	return db.connection.Model(&models.Order{}).Where("id = ?", orderID).Update("order_status", newStatus).Error
 }
 
 func checkAndAdjustStock(tx *gorm.DB, productID uint, quantityChange int) error {

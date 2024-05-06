@@ -6,7 +6,7 @@ import (
 
 type Order struct {
 	gorm.Model
-	User        User `gorm:"foreignkey:UserID"`
+	User        User `gorm:"foreignkey:UserID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	UserID      uint
 	OrderStatus OrderStatus `gorm:"type:varchar(100);not null"`
 }
@@ -25,8 +25,8 @@ const (
 
 type OrderItems struct {
 	gorm.Model
-	Order     Order   `gorm:"foreignkey:OrderID"`
-	Product   Product `gorm:"foreignkey:ProductID"`
+	Order     Order   `gorm:"foreignkey:OrderID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	Product   Product `gorm:"foreignkey:ProductID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	OrderID   uint
 	ProductID uint
 	Quantity  int

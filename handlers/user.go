@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"go_final/models"
 	"go_final/repositories"
@@ -44,7 +43,6 @@ func (h *userHandler) SignInUser(ctx *gin.Context) {
 	if err := ctx.ShouldBindJSON(&user); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
-	fmt.Println(user)
 
 	dbUser, err := h.repo.GetByEmail(user.Email)
 	if err != nil {
@@ -123,25 +121,45 @@ func (h *userHandler) UpdateUser(ctx *gin.Context) {
 	id := ctx.Param("user_id")
 	intID, _ := strconv.Atoi(id)
 
-	user, err := h.repo.GetUser(intID)
+	_, err := h.repo.GetUser(intID)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"error": "No such user id database!"})
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "No such user in database!"})
 		return
 	}
 
-	user.ID = uint(intID)
-	user.Name = input.Name
-	user.Password = input.Password
-	hashPassword(&user.Password)
+	var existingUser models.User
+	existingUser.ID = uint(intID)
+	if input.Name != "" {
+		existingUser.Name = input.Name
+	}
+	if input.Email != "" {
+		existingUser.Email = input.Email
+	}
+	passwordChanged := false
+	if input.Password != "" {
+		existingUser.Password = input.Password
+		hashPassword(&existingUser.Password)
+		passwordChanged = true
+	}
 
-	user, err = h.repo.UpdateUser(user)
-
+	updatedUser, err := h.repo.UpdateUser(existingUser)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, user)
+	user := models.APIUser{
+		ID:    updatedUser.ID,
+		Name:  updatedUser.Name,
+		Email: updatedUser.Email,
+		Role:  updatedUser.Role,
+	}
+
+	if passwordChanged {
+		ctx.JSON(http.StatusOK, gin.H{"message": "Password changed successfully", "changedFields": user})
+	} else {
+		ctx.JSON(http.StatusOK, gin.H{"message": "No password change", "changedFields": user})
+	}
 }
 
 func (h *userHandler) DeleteUser(ctx *gin.Context) {
