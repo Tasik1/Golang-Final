@@ -7,9 +7,9 @@ import (
 
 type UserRepository interface {
 	CreateUser(models.User) (models.User, error)
-	GetUser(int) (models.User, error)
+	GetUser(int) (models.APIUser, error)
 	GetByEmail(string) (models.User, error)
-	GetAllUsers() ([]models.User, error)
+	GetAllUsers() ([]models.APIUser, error)
 	UpdateUser(models.User) (models.User, error)
 	DeleteUser(models.User) (models.User, error)
 }
@@ -24,16 +24,16 @@ func NewUserRepository() UserRepository {
 	}
 }
 
-func (db *userRepository) GetUser(id int) (user models.User, err error) {
-	return user, db.connection.First(&user, id).Error
+func (db *userRepository) GetUser(id int) (user models.APIUser, err error) {
+	return user, db.connection.Model(&models.User{}).First(&user, id).Error
 }
 
 func (db *userRepository) GetByEmail(email string) (user models.User, err error) {
 	return user, db.connection.First(&user, "email=?", email).Error
 }
 
-func (db *userRepository) GetAllUsers() (users []models.User, err error) {
-	return users, db.connection.Find(&users).Error
+func (db *userRepository) GetAllUsers() (users []models.APIUser, err error) {
+	return users, db.connection.Model(&models.User{}).Find(&users).Error
 }
 
 func (db *userRepository) CreateUser(user models.User) (models.User, error) {

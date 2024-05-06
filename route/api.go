@@ -51,11 +51,17 @@ func RunAPI(address string) error {
 
 	orderRoutes := apiRoutes.Group("/order", middleware.AuthorizeJWT())
 	{
-		orderRoutes.GET("/", orderHandler.GetCurrentOrder)
 		orderRoutes.POST("/", orderHandler.OrderProducts)
-		orderRoutes.PUT("/", orderHandler.UpdateOrder)
-		orderRoutes.DELETE("/", orderHandler.DeleteOrder)
-		orderRoutes.DELETE("/order_items/:order_item_id", orderHandler.DeleteOrderItem)
+		adminRoutes := orderRoutes.Group("/", middleware.CheckAdmin())
+		{
+			adminRoutes.GET("/", orderHandler.GetOrders)
+			adminRoutes.GET("/:order_id", orderHandler.GetOrderByID)
+			adminRoutes.GET("/:order_id/order_items", orderHandler.GetOrderItems)
+			adminRoutes.PUT("/", orderHandler.UpdateOrder)
+			adminRoutes.PUT("/order_status/:order_id/:status", orderHandler.UpdateOrderStatus)
+			adminRoutes.DELETE("/", orderHandler.DeleteOrder)
+			adminRoutes.DELETE("/order_items/:order_item_id", orderHandler.DeleteOrderItem)
+		}
 	}
 
 	return r.Run(address)

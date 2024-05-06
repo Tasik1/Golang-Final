@@ -10,14 +10,12 @@ type User struct {
 	Role     UserRole `gorm:"type:varchar(100);not null"`
 }
 
-// TODO: exlude password, createdAt from getAllUsers
-
-//func (u User) change(user User) {
-//	if u.Role == ADMIN_ROLE{
-//		user.Role = ADMIN_ROLE
-//	}
-//	return
-//}
+type APIUser struct {
+	ID    uint
+	Name  string
+	Email string
+	Role  UserRole
+}
 
 type UserRegister struct {
 	Name     string `json:"name" binding:"required"`
@@ -31,8 +29,9 @@ type UserLogin struct {
 }
 
 type UserUpdate struct {
-	Name     string `json:"name" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Name     string `json:"name,omitempty"`
+	Email    string `json:"email,omitempty" binding:"omitempty,email" gorm:"unique"`
+	Password string `json:"password,omitempty"`
 }
 
 type UserRole string

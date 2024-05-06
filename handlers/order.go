@@ -11,9 +11,12 @@ import (
 type OrderHandler interface {
 	OrderProducts(*gin.Context)
 	UpdateOrder(*gin.Context)
+	UpdateOrderStatus(ctx *gin.Context)
 	DeleteOrder(*gin.Context)
 	DeleteOrderItem(*gin.Context)
-	GetCurrentOrder(*gin.Context)
+	GetOrderItems(*gin.Context)
+	GetOrders(*gin.Context)
+	GetOrderByID(*gin.Context)
 }
 
 type orderHandler struct {
@@ -26,9 +29,41 @@ func NewOrderHandler() OrderHandler {
 	}
 }
 
-func (h *orderHandler) GetCurrentOrder(ctx *gin.Context) {
+func (h *orderHandler) GetOrderByID(ctx *gin.Context) {
+	orderIDStr := ctx.Param("order_id")
+	orderID, err := strconv.Atoi(orderIDStr)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid order ID"})
+		return
+	}
+	order, err := h.repo.GetOrderByID(uint(orderID))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, order)
+}
+
+func (h *orderHandler) GetOrders(ctx *gin.Context) {
 	userID := ctx.GetFloat64("userID")
-	order, err := h.repo.GetCurrentOrder(uint(userID))
+	orders, err := h.repo.GetOrders(uint(userID))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, orders)
+}
+
+func (h *orderHandler) GetOrderItems(ctx *gin.Context) {
+	orderIDStr := ctx.Param("order_id")
+	orderID, err := strconv.Atoi(orderIDStr)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid order ID"})
+		return
+	}
+	order, err := h.repo.GetOrderItems(uint(orderID))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err})
 		return
@@ -73,7 +108,7 @@ func (h *orderHandler) DeleteOrder(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to delete order"})
 		return
 	}
-	ctx.Status(http.StatusOK)
+	ctx.Status(http.StatusNoContent)
 }
 
 func (h *orderHandler) DeleteOrderItem(ctx *gin.Context) {
@@ -91,5 +126,69 @@ func (h *orderHandler) DeleteOrderItem(ctx *gin.Context) {
 		return
 	}
 
-	ctx.Status(http.StatusOK)
+	ctx.Status(http.StatusNoContent)
+}
+
+func (h *orderHandler) UpdateOrderStatus(ctx *gin.Context) {
+	userID := ctx.GetFloat64("userID")
+	userStatus := ctx.GetString("role")
+	orderIDStr := ctx.Param("order_id")
+	orderID, err := strconv.Atoi(orderIDStr)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid order ID"})
+		return
+	}
+	newStatus := ctx.Param("status")
+
+	order, err := h.repo.GetOrderByID(uint(orderID))
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "Order not found"})
+		return
+	}
+
+	if order.UserID != uint(userID) && !isStatusTransitionAllowed(order.OrderStatus, models.OrderStatus(newStatus), userStatus) {
+		ctx.JSON(
+			http.StatusUnauthorized,
+			gin.H{"error": "Status transition not allowed" + strconv.FormatBool(order.UserID == uint(userID)) + strconv.FormatBool(isStatusTransitionAllowed(order.OrderStatus, models.OrderStatus(newStatus), userStatus))},
+		)
+		return
+	}
+
+	if err = h.repo.UpdateOrderStatus(uint(orderID), newStatus); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update order status"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Order status updated successfully"})
+}
+
+func isStatusTransitionAllowed(currentStatus, newStatus models.OrderStatus, userRole string) bool {
+	switch userRole {
+	case "admin":
+		return isAdminTransitionValid(currentStatus, newStatus)
+	case "customer":
+		return isCustomerTransitionValid(currentStatus, newStatus)
+	}
+	return false
+}
+
+func isAdminTransitionValid(current, new models.OrderStatus) bool {
+	validTransitions := map[models.OrderStatus]models.OrderStatus{
+		models.PENDING:  models.ACCEPTED,
+		models.ACCEPTED: models.READY,
+		models.READY:    models.OUT,
+		models.OUT:      models.DELIVERED,
+	}
+	nextStatus, ok := validTransitions[current]
+	return ok && new == nextStatus
+}
+
+func isCustomerTransitionValid(current, new models.OrderStatus) bool {
+	if new == models.CANCELED {
+		return true
+	}
+	if current == models.DELIVERED && new == models.CONFIRMED {
+		return true
+	}
+	return false
 }
