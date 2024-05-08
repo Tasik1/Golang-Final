@@ -10,11 +10,11 @@ import (
 )
 
 func DB() *gorm.DB {
-	host := os.Getenv("DB_HOST")
-	username := os.Getenv("DB_USERNAME")
-	password := os.Getenv("DB_PASSWORD")
-	dbName := os.Getenv("DB_NAME")
-	port := os.Getenv("DB_PORT")
+	host := os.Getenv("HOST")
+	username := os.Getenv("POSTGRES_USER")
+	password := os.Getenv("POSTGRES_PASSWORD")
+	dbName := os.Getenv("POSTGRES_DB")
+	port := os.Getenv("PORT")
 
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Asia/Shanghai", host, username, password, dbName, port)
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})

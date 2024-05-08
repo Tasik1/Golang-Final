@@ -13,6 +13,6 @@ func loadenv() {
 }
 
 func main() {
-	loadenv()
-	log.Fatal(route.RunAPI("127.0.0.1:8080"))
+	// loadenv()
+	log.Fatal(route.RunAPI(":8080"))
 }
